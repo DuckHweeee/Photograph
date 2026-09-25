@@ -1,0 +1,39 @@
+# --- Secrets (never commit) ---
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+.env
+.env.*
+!.env.example
+
+# --- Xcode / Swift ---
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.swiftpm/
+.build/
+Pods/
+
+# --- Node / Cloud Functions ---
+node_modules/
+functions/lib/
+npm-debug.log*
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+.firebase/
+
+# --- OS / editors ---
+.DS_Store
+.idea/
+.vscode/
