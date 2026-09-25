@@ -6,16 +6,16 @@
 >
 > Bước này **chưa có code**. Làm xong checklist dưới đây thì mình sang bước 2 (code widget + App Group + Firestore REST + màn gửi thử).
 
-Quy ước trong tài liệu (thay bằng giá trị thật của cậu, và **dùng đúng một bộ tên này cho mọi chỗ**):
+Bộ tên đã chốt (**dùng đúng bộ tên này cho mọi chỗ**, đừng đổi giữa chừng vì mỗi lần đổi tốn 1 trong 10 App ID/tuần):
 
 | Thứ | Giá trị mẫu |
 |---|---|
-| Bundle ID app | `com.tencau.photograph` |
-| Bundle ID widget | `com.tencau.photograph.widget` |
-| App Group | `group.com.tencau.photograph` |
-| Keychain group | `com.tencau.photograph.shared` |
+| Bundle ID app | `com.hwee.photograph` |
+| Bundle ID widget | `com.hwee.photograph.widget` |
+| App Group | `group.com.hwee.photograph` |
+| Keychain group | `com.hwee.photograph.shared` |
 
-`tencau` nên là chuỗi riêng của cậu (ví dụ tên + năm sinh). Bundle ID phải là duy nhất trên toàn hệ thống Apple.
+Nếu Xcode báo Bundle ID đã bị người khác dùng, đổi `hwee` thành `hwee2026` cho **tất cả** các dòng trên và báo tớ.
 
 Thời gian ước tính: 1–2 giờ.
 
@@ -51,7 +51,7 @@ Thời gian ước tính: 1–2 giờ.
 - [ ] **File → New → Project → iOS → App**.
   - Product Name: `Photograph`
   - Team: **Personal Team** của cậu
-  - Organization Identifier: `com.tencau` → Bundle ID thành `com.tencau.photograph`
+  - Organization Identifier: `com.hwee` → Bundle ID thành `com.hwee.photograph`
   - Interface: **SwiftUI**, Language: **Swift**, Storage: **None**, bỏ tick Include Tests
 - [ ] Lưu project **vào chính thư mục repo này** (bỏ tick "Create Git repository" vì repo đã có).
 - [ ] Target **Photograph** → **General** → **Minimum Deployments: iOS 17.0**.
@@ -64,7 +64,7 @@ Thời gian ước tính: 1–2 giờ.
   - **Bỏ tick** Include Configuration App Intent
 - [ ] "Activate PhotographWidget scheme?" → **Activate**.
 - [ ] Target PhotographWidget → General → **Minimum Deployments: iOS 17.0** ⚠️ Xcode mặc định đặt bản iOS mới nhất cho target mới — quên bước này thì widget không cài được.
-- [ ] Signing & Capabilities → Team: **Personal Team**. Bundle ID là `com.tencau.photograph.widget`.
+- [ ] Signing & Capabilities → Team: **Personal Team**. Bundle ID là `com.hwee.photograph.widget`.
 
 ### B3. Framework dùng chung
 
@@ -83,8 +83,8 @@ Chọn target → tab **Signing & Capabilities** → **+ Capability**.
 
 | Capability | Photograph | PhotographWidget |
 |---|:-:|:-:|
-| **App Groups** → **+** → `group.com.tencau.photograph` | ✅ | ✅ (tick group đã tạo, đừng tạo mới) |
-| **Keychain Sharing** → **+** → `com.tencau.photograph.shared` | ✅ | ✅ (cùng tên group) |
+| **App Groups** → **+** → `group.com.hwee.photograph` | ✅ | ✅ (tick group đã tạo, đừng tạo mới) |
+| **Keychain Sharing** → **+** → `com.hwee.photograph.shared` | ✅ | ✅ (cùng tên group) |
 
 - [ ] Nếu tên group hiện màu đỏ, bấm nút refresh nhỏ cạnh đó.
 - [ ] ⚠️ **Nếu Xcode báo "Personal development teams … do not support the App Groups capability"** (hoặc Keychain Sharing): dừng lại, chụp màn hình gửi tớ. Tớ tin là cả hai đều có với Personal Team, nhưng đây chính là điều spike cần xác nhận, và tớ có phương án dự phòng.
@@ -111,7 +111,7 @@ Chọn target → tab **Signing & Capabilities** → **+ Capability**.
 
 - [ ] console.firebase.google.com → **Add project** → tên `photograph` → tắt Google Analytics. Giữ nguyên gói **Spark**, **không** nâng lên Blaze.
 - [ ] **Add app → iOS**:
-  - Apple bundle ID: `com.tencau.photograph` (bundle của **app**)
+  - Apple bundle ID: `com.hwee.photograph` (bundle của **app**)
   - Tải `GoogleService-Info.plist` → kéo vào Xcode, thả vào nhóm `Photograph`, tick **cả 2 target Photograph và PhotographWidget** (widget cần nó để khởi tạo FirebaseAuth).
   - Các bước "Add Firebase SDK" và "Add initialization code" → bỏ qua (Next), code làm ở bước 2.
   - ⚠️ File này đã nằm trong `.gitignore`. Trước mỗi lần commit, chạy `git status` và xác nhận nó **không** xuất hiện.
