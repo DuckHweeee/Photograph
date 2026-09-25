@@ -9,6 +9,13 @@ serviceAccountKey*.json
 .env.*
 !.env.example
 
+# --- XcodeGen output (regenerate with `xcodegen generate`) ---
+*.xcodeproj/
+photograph/Info.plist
+photograph/*.entitlements
+PhotographWidget/Info.plist
+PhotographWidget/*.entitlements
+
 # --- Xcode / Swift ---
 DerivedData/
 build/

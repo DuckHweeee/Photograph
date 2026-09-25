@@ -1,0 +1,25 @@
+/* Spike debug screen (week 1). Replaced by the real Home screen later. */
+"spike.title" = "Photograph · thử nghiệm";
+
+"spike.status.starting" = "Đang đăng nhập…";
+"spike.status.missingConfig" = "Thiếu GoogleService-Info.plist. Đặt file vào thư mục photograph/ rồi chạy lại xcodegen generate.";
+"spike.status.signedIn %@" = "Đã đăng nhập · uid %@…";
+"spike.status.failed %@" = "Đăng nhập lỗi: %@";
+
+"spike.send.header" = "Gửi khoảnh khắc";
+"spike.send.pickPhoto" = "Chọn ảnh";
+"spike.send.removePhoto" = "Bỏ ảnh";
+"spike.send.placeholder" = "Viết gì đó…";
+"spike.send.button" = "Gửi";
+"spike.send.success" = "Đã gửi 💌";
+
+"spike.error.image" = "Không đọc được ảnh này, cậu thử ảnh khác nhé.";
+
+"spike.partner.header" = "Khoảnh khắc mới nhất của người ấy";
+"spike.partner.empty" = "Chưa có gì từ người ấy.";
+"spike.widget.reload" = "Làm mới widget ngay";
+
+"spike.log.header" = "Nhật ký làm mới";
+"spike.log.reload" = "Tải lại";
+"spike.log.empty" = "Chưa có lần làm mới nào.";
+"spike.log.footer" = "[widget] là lần iOS cho widget tự làm mới; [app] là lúc app nhận qua Firestore. Dùng để đo độ trễ thật.";

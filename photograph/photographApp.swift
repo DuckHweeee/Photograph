@@ -1,17 +1,22 @@
-//
-//  photographApp.swift
-//  photograph
-//
-//  Created by IIC4.0 on 25/9/26.
-//
-
+import FirebaseCore
 import SwiftUI
 
 @main
-struct photographApp: App {
+struct PhotographApp: App {
+    @StateObject private var model = SpikeModel()
+
+    init() {
+        let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        // Without GoogleService-Info.plist the UI shows a hint instead of crashing.
+        let hasFirebaseConfig = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil
+        if hasFirebaseConfig && !isRunningTests {
+            FirebaseApp.configure()
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SpikeView(model: model)
         }
     }
 }

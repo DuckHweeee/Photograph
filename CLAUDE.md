@@ -44,13 +44,23 @@ Swift + SwiftUI, iOS 17+ · WidgetKit + App Intents · Firebase gói Spark (Anon
 firebase deploy --only firestore:rules
 firebase emulators:start
 
-# Build app (chạy trên máy Mac)
-xcodebuild -scheme photograph -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+# Sinh Xcode project từ project.yml (sau mỗi lần thêm/xoá file)
+xcodegen generate
+
+# Build + test (chạy trên máy Mac; đổi tên máy theo `xcrun simctl list devices`)
+xcodebuild -scheme photograph -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+
+# Test Firestore rules (cần Java)
+cd firestore-tests && npm install && npm test
 ```
 
 ## Trạng thái hiện tại
 
-Chưa có code. Việc đầu tiên: spike tuần 1 — Firestore → widget tự làm mới (chế độ 0đ). Xem §3 của spec để biết tiêu chí nghiệm thu.
+Spike tuần 1 — Firestore → widget tự làm mới (chế độ 0đ). Xem §3 của spec để biết tiêu chí nghiệm thu.
 
-- Spike tuần 1, bước 1 (thiết lập Xcode + Firebase, việc tay): `docs/spike/01-setup-checklist.md`
-- Bundle ID thật: `hwee.photograph` · widget `hwee.photograph.widget` · App Group `group.hwee.photograph` · Keychain group `hwee.photograph.shared`
+- Project Xcode sinh bằng **XcodeGen** từ `project.yml`; `*.xcodeproj` không commit. Thêm target/capability/package thì sửa `project.yml`, không sửa trong Xcode.
+- Code dùng chung app + widget nằm ở `Shared/` (không dùng framework riêng).
+
+- Bước 1 (thiết lập Firebase, việc tay): `docs/spike/01-setup-checklist.md`
+- Bước 2 (code spike + chạy trên Simulator): `docs/spike/02-simulator-test.md`
+- Bundle ID thật: `hwee.photograph` · widget `hwee.photograph.widget` · App Group `group.hwee.photograph`

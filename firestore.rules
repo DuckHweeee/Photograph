@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // WEEK-1 SPIKE ONLY.
+    // Any signed-in (anonymous) user can use couples/spike. There is no
+    // pairing yet, so do NOT send private photos here. These rules are
+    // replaced by membership-based rules (members: [uidA, uidB]) in F1.
+    // ---------------------------------------------------------------------
+    match /couples/spike/moments/{momentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isValidMoment(request.resource.data);
+      // Moments are immutable in the spike.
+      allow update, delete: if false;
+    }
+
+    function isValidMoment(m) {
+      return m.keys().hasOnly(['authorUid', 'type', 'text', 'imageData', 'createdAt'])
+        && m.authorUid == request.auth.uid
+        && m.createdAt == request.time
+        && (!('text' in m) || (m.text is string && m.text.size() <= 200))
+        && (
+          // Must match ImageResizer.maxUploadBytes (200 KB, ~600px JPEG).
+          (m.type == 'photo' && m.imageData is bytes && m.imageData.size() <= 200 * 1024)
+          || (m.type == 'note' && !('imageData' in m) && 'text' in m && m.text.size() > 0)
+        );
+    }
+  }
+}

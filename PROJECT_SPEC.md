@@ -75,17 +75,17 @@ Gratitude Journal · Period tracker · Random date/food generator · Timeline k�
 
 ### Cấu trúc target
 
+Project sinh bằng **XcodeGen** từ `project.yml` (không commit `*.xcodeproj`).
+
 ```
-Photograph.xcodeproj
-├── Photograph            (app chính)
-├── PhotographWidget      (Widget Extension)
-└── PhotographShared      (framework dùng chung: models, App Group I/O, Firestore REST client)
+project.yml
+├── photograph            (app chính, bundle hwee.photograph)
+├── PhotographWidget      (Widget Extension, bundle hwee.photograph.widget)
+├── PhotographTests       (unit test cho logic thuần)
+└── Shared/               (thư mục code biên dịch vào cả app lẫn widget: models, App Group I/O, Firestore REST client)
 ```
 
-Capabilities (đều có với Personal Team):
-
-- **App Groups:** `group.<bundle-prefix>.photograph` — app + widget
-- **Keychain Sharing** — app + widget (để widget dùng chung phiên Firebase Auth qua `useUserAccessGroup()`)
+Capabilities: chỉ **App Groups** `group.hwee.photograph` cho app + widget. Không cần Keychain Sharing (widget không dùng Firebase Auth SDK).
 
 ### Cơ chế cập nhật widget (QUAN TRỌNG NHẤT)
 
@@ -98,8 +98,9 @@ Máy A gửi ảnh
 
 Máy B — một trong hai đường:
   (1) Widget tự làm mới theo lịch (policy .after(~15 phút), iOS có thể giãn ra)
-        └─► getTimeline: lấy ID token từ FirebaseAuth (Keychain Sharing)
-              → gọi Firestore REST lấy moment mới nhất
+        └─► getTimeline: đổi refresh token (app ghi trong App Group) lấy ID token qua Secure Token REST
+              → runQuery lấy metadata 10 moment mới nhất (không kèm ảnh), chọn cái của người kia
+              → chỉ khi id mới: GET riêng imageData
               → ghi ảnh vào App Group → hiển thị
   (2) Người B mở app
         └─► Firestore snapshot listener → ghi App Group → WidgetCenter.reloadAllTimelines()
@@ -312,6 +313,6 @@ Song song: viết **60 câu hỏi** cho `questionBank`. Nội dung quyết đị
 | App hết hạn sau 7 ngày, nhất là máy người ấy | Cao | Đặt lịch cài lại cố định mỗi tuần; nếu hai người ở xa → thử SideStore để tự gia hạn trên máy |
 | Bộ nhớ widget tràn khi load ảnh | Trung bình | Resize ~600px ở máy gửi, widget dùng REST thay vì Firestore SDK |
 | Vượt hạn mức Firestore miễn phí | Thấp | 2 người × ảnh ~60KB × widget đọc ~70 lần/ngày là rất xa hạn mức; rules chặn ảnh >200KB |
-| Firebase Auth trong widget extension | Trung bình | Keychain Sharing + `useUserAccessGroup()`; fallback: app lưu refresh token vào App Group, widget tự đổi lấy ID token qua REST |
+| Firebase Auth trong widget extension | Trung bình | Đã chọn: app lưu refresh token vào App Group (file protection until-first-unlock), widget tự đổi lấy ID token qua REST; không nhúng Firebase SDK vào widget |
 | Apple từ chối vì quyền riêng tư | Thấp | Không thu thập dữ liệu ngoài couple; viết privacy policy rõ ràng |
 | Scope phình to | Cao | Backlog ở §2 là bất khả xâm phạm cho đến khi MVP chạy ổn trên 2 máy |

@@ -1,0 +1,6 @@
+/* Widget gallery */
+"widget.name" = "Khoảnh khắc";
+"widget.description" = "Khoảnh khắc mới nhất của người ấy.";
+
+/* Empty state */
+"widget.empty" = "Chưa có gì — gửi người ấy một khoảnh khắc nhé";

@@ -13,7 +13,6 @@ Bộ tên đã chốt (**dùng đúng bộ tên này cho mọi chỗ**, đừng 
 | Bundle ID app | `hwee.photograph` |
 | Bundle ID widget | `hwee.photograph.widget` |
 | App Group | `group.hwee.photograph` |
-| Keychain group | `hwee.photograph.shared` |
 
 Project đã tạo với Bundle ID `hwee.photograph` (Product Name `photograph`, viết thường), nên mọi tên khác đi theo prefix này.
 
@@ -44,66 +43,11 @@ Thời gian ước tính: 1–2 giờ.
 
 ---
 
-## B. Xcode — tạo project và 3 target
+## B. Xcode — ~~tạo target bằng tay~~ (đã thay bằng XcodeGen)
 
-### B1. Project + app target
+Không cần tạo target, capability hay thêm Firebase SDK bằng tay nữa. Toàn bộ nằm trong `project.yml`; chỉ cần `xcodegen generate`. Xem `docs/spike/02-simulator-test.md`.
 
-- [ ] **File → New → Project → iOS → App**.
-  - Product Name: `Photograph`
-  - Team: **Personal Team** của cậu
-  - Organization Identifier: `hwee` → Bundle ID thành `hwee.photograph`
-  - Interface: **SwiftUI**, Language: **Swift**, Storage: **None**, bỏ tick Include Tests
-- [ ] Lưu project **vào chính thư mục repo này** (bỏ tick "Create Git repository" vì repo đã có).
-- [ ] Target **Photograph** → **General** → **Minimum Deployments: iOS 17.0**.
-
-### B2. Widget Extension
-
-- [ ] **File → New → Target → iOS → Widget Extension** → Next.
-  - Product Name: `PhotographWidget`
-  - **Bỏ tick** Include Live Activity
-  - **Bỏ tick** Include Configuration App Intent
-- [ ] "Activate PhotographWidget scheme?" → **Activate**.
-- [ ] Target PhotographWidget → General → **Minimum Deployments: iOS 17.0** ⚠️ Xcode mặc định đặt bản iOS mới nhất cho target mới — quên bước này thì widget không cài được.
-- [ ] Signing & Capabilities → Team: **Personal Team**. Bundle ID là `hwee.photograph.widget`.
-
-### B3. Framework dùng chung
-
-- [ ] **File → New → Target → iOS → Framework** → Next.
-  - Product Name: `PhotographShared`, Embed in Application: **Photograph**
-- [ ] General → **Minimum Deployments: iOS 17.0**.
-- [ ] **Build Settings** → ô tìm kiếm gõ `extension` → **Require Only App-Extension-Safe API = Yes**.
-- [ ] Target **PhotographWidget** → General → **Frameworks and Libraries** → **+** → `PhotographShared.framework` → Embed: **Do Not Embed**.
-- [ ] Target **Photograph** → Frameworks and Libraries: `PhotographShared.framework` là **Embed & Sign**.
-
-> Framework không chiếm App ID, không tính vào giới hạn 10 App ID.
-
-### B4. Capabilities
-
-Chọn target → tab **Signing & Capabilities** → **+ Capability**.
-
-| Capability | Photograph | PhotographWidget |
-|---|:-:|:-:|
-| **App Groups** → **+** → `group.hwee.photograph` | ✅ | ✅ (tick group đã tạo, đừng tạo mới) |
-| **Keychain Sharing** → **+** → `hwee.photograph.shared` | ✅ | ✅ (cùng tên group) |
-
-- [ ] Nếu tên group hiện màu đỏ, bấm nút refresh nhỏ cạnh đó.
-- [ ] ⚠️ **Nếu Xcode báo "Personal development teams … do not support the App Groups capability"** (hoặc Keychain Sharing): dừng lại, chụp màn hình gửi tớ. Tớ tin là cả hai đều có với Personal Team, nhưng đây chính là điều spike cần xác nhận, và tớ có phương án dự phòng.
-
-### B5. Thêm Firebase SDK
-
-- [ ] **File → Add Package Dependencies…** → dán `https://github.com/firebase/firebase-ios-sdk` → **Up to Next Major Version** → Add Package.
-- [ ] Ở màn chọn product:
-  - **FirebaseAuth** → target **Photograph**
-  - **FirebaseFirestore** → target **Photograph**
-- [ ] Sau đó thêm FirebaseAuth cho widget: target **PhotographWidget** → General → Frameworks and Libraries → **+** → **FirebaseAuth**.
-  - Widget chỉ dùng Auth để lấy token, rồi gọi Firestore qua REST. **Không** thêm FirebaseFirestore vào widget (quá nặng so với giới hạn bộ nhớ widget).
-
-### B6. Kiểm tra build trên cả 2 máy
-
-- [ ] Cắm iPhone B → chọn scheme **Photograph** + thiết bị → **Run** (⌘R).
-- [ ] Lần đầu iPhone báo "Untrusted Developer": *Cài đặt → Cài đặt chung → Quản lý VPN & Thiết bị* → chọn Apple ID của cậu → **Tin cậy**. Rồi Run lại.
-- [ ] Ra màn hình chính → nhấn giữ → **+** → tìm "Photograph" → thêm widget mẫu. Thấy widget hiện là đạt.
-- [ ] Lặp lại với iPhone A (máy người ấy cũng cài bằng Apple ID của cậu được, chỉ cần cắm vào Mac của cậu).
+Việc tay duy nhất còn lại trong Xcode là chọn **Personal Team** khi chạy lên **máy thật** (bước 3), Simulator thì không cần.
 
 ---
 
@@ -112,7 +56,7 @@ Chọn target → tab **Signing & Capabilities** → **+ Capability**.
 - [ ] console.firebase.google.com → **Add project** → tên `photograph` → tắt Google Analytics. Giữ nguyên gói **Spark**, **không** nâng lên Blaze.
 - [ ] **Add app → iOS**:
   - Apple bundle ID: `hwee.photograph` (bundle của **app**)
-  - Tải `GoogleService-Info.plist` → kéo vào Xcode, thả vào nhóm `Photograph`, tick **cả 2 target Photograph và PhotographWidget** (widget cần nó để khởi tạo FirebaseAuth).
+  - Tải `GoogleService-Info.plist` → đặt vào thư mục **`photograph/`** của repo (cạnh `photographApp.swift`). Không cần kéo vào Xcode — `xcodegen generate` tự thêm.
   - Các bước "Add Firebase SDK" và "Add initialization code" → bỏ qua (Next), code làm ở bước 2.
   - ⚠️ File này đã nằm trong `.gitignore`. Trước mỗi lần commit, chạy `git status` và xác nhận nó **không** xuất hiện.
 - [ ] **Build → Authentication → Get started → Sign-in method → Anonymous → Enable → Save**.
@@ -135,12 +79,10 @@ Chưa cần `firebase init` — ở bước 2 tớ sẽ đưa sẵn `firebase.js
 
 ## Xong bước 1 khi
 
-- [ ] Project build và chạy trên **cả 2 iPhone**, mỗi máy thêm được widget mẫu.
-- [ ] App Groups + Keychain Sharing bật được cho cả app và widget, không lỗi signing.
 - [ ] Firebase có Anonymous Auth và Firestore, vẫn ở gói Spark.
-- [ ] `git status` không thấy `GoogleService-Info.plist`.
+- [ ] `photograph/GoogleService-Info.plist` nằm đúng chỗ, và `git status` **không** thấy nó.
 
-Khi xong, commit project Xcode rỗng này rồi báo tớ **Bundle ID**, **App Group** và **Keychain group** thật để tớ điền vào code ở bước 2.
+Sau đó sang `docs/spike/02-simulator-test.md`.
 
 ---
 
