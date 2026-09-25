@@ -16,7 +16,9 @@ Photograph — app iOS riêng tư cho **đúng 2 người yêu nhau**. Widget ch
 
 ## Stack
 
-Swift + SwiftUI, iOS 17+ · WidgetKit + App Intents · Firebase (Auth, Firestore, Storage, Functions, FCM) · Cloud Functions viết bằng TypeScript.
+Swift + SwiftUI, iOS 17+ · WidgetKit + App Intents · Firebase gói Spark (Anonymous Auth, Firestore, Security Rules).
+
+**Chế độ 0đ:** không có Apple Developer Program trả phí và không dùng Firebase Blaze → **không** push/APNs, NSE, Sign in with Apple, TestFlight, Cloud Functions, Cloud Storage. Đừng đề xuất code dùng những thứ này trừ khi tớ nói đã chuyển sang Giai đoạn 2 (§3b spec).
 
 ## Quy tắc bắt buộc
 
@@ -38,8 +40,7 @@ Swift + SwiftUI, iOS 17+ · WidgetKit + App Intents · Firebase (Auth, Firestore
 ## Lệnh hay dùng
 
 ```bash
-# Cloud Functions
-cd functions && npm run build && firebase deploy --only functions
+# Firestore rules
 firebase deploy --only firestore:rules
 firebase emulators:start
 
@@ -49,6 +50,6 @@ xcodebuild -scheme Photograph -destination 'platform=iOS Simulator,name=iPhone 1
 
 ## Trạng thái hiện tại
 
-Chưa có code. Việc đầu tiên: spike tuần 1 — push → Notification Service Extension → widget cập nhật. Xem §3 của spec để biết tiêu chí nghiệm thu.
+Chưa có code. Việc đầu tiên: spike tuần 1 — Firestore → widget tự làm mới (chế độ 0đ). Xem §3 của spec để biết tiêu chí nghiệm thu.
 
 - Spike tuần 1, bước 1 (thiết lập Xcode + Firebase, việc tay): `docs/spike/01-setup-checklist.md`

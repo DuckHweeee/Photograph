@@ -1,8 +1,10 @@
-# Spike tuần 1 — Bước 1: Việc cậu tự làm trong Apple Developer, Xcode và Firebase
+# Spike tuần 1 — Bước 1: Việc cậu tự làm trong Xcode và Firebase (chế độ 0đ)
 
-> Mục tiêu spike (§3 spec): máy A gửi ảnh → widget máy B đổi ảnh trong ~5 giây, kể cả khi app B đã tắt hẳn, máy đang khóa, đang bật Low Power Mode.
+> Mục tiêu spike (§3 spec): máy A gửi ảnh → widget máy B tự đổi ảnh **mà không cần push**, và đo độ trễ thực tế khi app B đã tắt hẳn, máy khóa, Low Power Mode.
 >
-> Bước này **chưa có code**. Làm xong checklist dưới đây thì mình sang bước 2 (code NSE + widget + App Group + Cloud Function).
+> Không cần Apple Developer Program trả phí, không cần thẻ thanh toán cho Firebase.
+>
+> Bước này **chưa có code**. Làm xong checklist dưới đây thì mình sang bước 2 (code widget + App Group + Firestore REST + màn gửi thử).
 
 Quy ước trong tài liệu (thay bằng giá trị thật của cậu, và **dùng đúng một bộ tên này cho mọi chỗ**):
 
@@ -10,19 +12,31 @@ Quy ước trong tài liệu (thay bằng giá trị thật của cậu, và **d
 |---|---|
 | Bundle ID app | `com.tencau.photograph` |
 | Bundle ID widget | `com.tencau.photograph.widget` |
-| Bundle ID NSE | `com.tencau.photograph.nse` |
 | App Group | `group.com.tencau.photograph` |
+| Keychain group | `com.tencau.photograph.shared` |
 
-Thời gian ước tính: 1.5–2.5 giờ nếu chưa làm bao giờ.
+`tencau` nên là chuỗi riêng của cậu (ví dụ tên + năm sinh). Bundle ID phải là duy nhất trên toàn hệ thống Apple.
+
+Thời gian ước tính: 1–2 giờ.
+
+---
+
+## Giới hạn của Apple ID miễn phí — đọc trước
+
+- App cài bằng tài khoản miễn phí **hết hạn sau 7 ngày**. Hết hạn thì app không mở được, widget cũng ngừng. Cách xử lý: cắm máy vào Mac → bấm Run lại. Dữ liệu vẫn còn.
+- Tối đa **10 App ID mới mỗi 7 ngày**. Mỗi target (app, widget) chiếm 1 App ID. **Đừng tạo/xoá target hay đổi Bundle ID nhiều lần**, không thì phải chờ một tuần.
+- Tối đa 3 app tự ký trên mỗi máy — đừng cài thêm app tự ký khác lên 2 máy này.
+- Không có Push Notifications, không có Sign in with Apple. Nếu Xcode đề nghị thêm hai capability này, bỏ qua.
 
 ---
 
 ## A. Chuẩn bị
 
-- [ ] Máy Mac có Xcode bản mới nhất (từ App Store).
-- [ ] **2 iPhone thật** chạy iOS 17+. Simulator không kiểm được Low Power Mode, khóa máy, và hành vi widget thật.
-- [ ] Trên cả 2 iPhone: *Cài đặt → Quyền riêng tư & Bảo mật → Chế độ nhà phát triển* → bật (máy sẽ khởi động lại). Mục này chỉ hiện sau khi cắm máy vào Mac và mở Xcode một lần.
-- [ ] Cài Node.js 20+ và Firebase CLI:
+- [ ] Xcode bản mới nhất (từ App Store).
+- [ ] **2 iPhone thật** chạy iOS 17+. Simulator không kiểm được Low Power Mode, khóa máy, và lịch làm mới widget thật.
+- [ ] Xcode → **Settings… → Accounts** → **+** → **Apple ID** → đăng nhập Apple ID thường của cậu. Sẽ thấy một team tên "*Tên cậu* (Personal Team)".
+- [ ] Cắm từng iPhone vào Mac, mở Xcode một lần, rồi trên iPhone: *Cài đặt → Quyền riêng tư & Bảo mật → Chế độ nhà phát triển* → bật (máy khởi động lại).
+- [ ] Cài Node.js 20+ và Firebase CLI (dùng để deploy Firestore rules, miễn phí):
   ```bash
   npm install -g firebase-tools
   firebase login
@@ -30,107 +44,84 @@ Thời gian ước tính: 1.5–2.5 giờ nếu chưa làm bao giờ.
 
 ---
 
-## B. Apple Developer — tạo APNs Auth Key (.p8)
+## B. Xcode — tạo project và 3 target
 
-Làm trên trình duyệt, tại developer.apple.com → **Certificates, Identifiers & Profiles**.
-
-- [ ] Vào **Keys** → nút **+**.
-- [ ] Đặt tên, ví dụ `Photograph APNs`. Tick **Apple Push Notifications service (APNs)** → nếu có nút **Configure** thì chọn môi trường **Sandbox & Production**.
-- [ ] **Continue → Register → Download**. File `AuthKey_XXXXXXXXXX.p8` **chỉ tải được đúng 1 lần** — cất vào trình quản lý mật khẩu hoặc thư mục ngoài repo.
-- [ ] Ghi lại 2 giá trị:
-  - **Key ID** (10 ký tự, hiện ngay trên trang key)
-  - **Team ID** (góc phải trên, hoặc mục **Membership details**)
-
-> Không cần tự tạo App ID hay App Group ở đây — Xcode (automatic signing) sẽ tự đăng ký khi cậu bật capability ở phần C.
-
----
-
-## C. Xcode — tạo project và 4 target
-
-### C1. Project + app target
+### B1. Project + app target
 
 - [ ] **File → New → Project → iOS → App**.
   - Product Name: `Photograph`
-  - Interface: **SwiftUI**, Language: **Swift**
-  - Storage: **None**, bỏ tick Include Tests (spike không cần)
+  - Team: **Personal Team** của cậu
   - Organization Identifier: `com.tencau` → Bundle ID thành `com.tencau.photograph`
+  - Interface: **SwiftUI**, Language: **Swift**, Storage: **None**, bỏ tick Include Tests
 - [ ] Lưu project **vào chính thư mục repo này** (bỏ tick "Create Git repository" vì repo đã có).
-- [ ] Chọn project (icon xanh trên cùng) → target **Photograph** → **General** → **Minimum Deployments: iOS 17.0**.
-- [ ] **Signing & Capabilities** → tick **Automatically manage signing** → chọn **Team** của cậu.
+- [ ] Target **Photograph** → **General** → **Minimum Deployments: iOS 17.0**.
 
-### C2. Widget Extension
+### B2. Widget Extension
 
 - [ ] **File → New → Target → iOS → Widget Extension** → Next.
   - Product Name: `PhotographWidget`
   - **Bỏ tick** Include Live Activity
-  - **Bỏ tick** Include Configuration App Intent (spike dùng widget tĩnh; nút ❤️ làm ở F4 sau)
-- [ ] Hộp thoại "Activate PhotographWidget scheme?" → **Activate**.
-- [ ] Target PhotographWidget → General → **Minimum Deployments: iOS 17.0** ⚠️ Xcode mặc định đặt bản iOS mới nhất cho target mới — nếu quên, widget sẽ không cài được lên máy chạy iOS thấp hơn.
-- [ ] Kiểm tra Bundle ID là `com.tencau.photograph.widget`.
+  - **Bỏ tick** Include Configuration App Intent
+- [ ] "Activate PhotographWidget scheme?" → **Activate**.
+- [ ] Target PhotographWidget → General → **Minimum Deployments: iOS 17.0** ⚠️ Xcode mặc định đặt bản iOS mới nhất cho target mới — quên bước này thì widget không cài được.
+- [ ] Signing & Capabilities → Team: **Personal Team**. Bundle ID là `com.tencau.photograph.widget`.
 
-### C3. Notification Service Extension
-
-- [ ] **File → New → Target → iOS → Notification Service Extension** → Next.
-  - Product Name: `PhotographNSE`
-- [ ] "Activate scheme?" → **Activate**.
-- [ ] General → **Minimum Deployments: iOS 17.0**.
-- [ ] Bundle ID là `com.tencau.photograph.nse`.
-
-### C4. Framework dùng chung
+### B3. Framework dùng chung
 
 - [ ] **File → New → Target → iOS → Framework** → Next.
-  - Product Name: `PhotographShared`
-  - Embed in Application: **Photograph**
-- [ ] Target PhotographShared → General → **Minimum Deployments: iOS 17.0**.
-- [ ] Target PhotographShared → **Build Settings** → ô tìm kiếm gõ `extension` → **Require Only App-Extension-Safe API = Yes**. (Bắt buộc để widget và NSE link được framework này.)
-- [ ] Target **PhotographWidget** → General → **Frameworks and Libraries** → **+** → chọn `PhotographShared.framework` → cột Embed chọn **Do Not Embed**.
-- [ ] Làm y hệt cho target **PhotographNSE**.
-- [ ] Target **Photograph** (app) → Frameworks and Libraries: `PhotographShared.framework` phải là **Embed & Sign** (Xcode thường đã tự đặt).
+  - Product Name: `PhotographShared`, Embed in Application: **Photograph**
+- [ ] General → **Minimum Deployments: iOS 17.0**.
+- [ ] **Build Settings** → ô tìm kiếm gõ `extension` → **Require Only App-Extension-Safe API = Yes**.
+- [ ] Target **PhotographWidget** → General → **Frameworks and Libraries** → **+** → `PhotographShared.framework` → Embed: **Do Not Embed**.
+- [ ] Target **Photograph** → Frameworks and Libraries: `PhotographShared.framework` là **Embed & Sign**.
 
-### C5. Capabilities
+> Framework không chiếm App ID, không tính vào giới hạn 10 App ID.
 
-Mỗi capability: chọn target → tab **Signing & Capabilities** → nút **+ Capability**.
+### B4. Capabilities
 
-| Capability | Photograph | PhotographWidget | PhotographNSE |
-|---|:-:|:-:|:-:|
-| **App Groups** → bấm **+** → `group.com.tencau.photograph` | ✅ | ✅ | ✅ |
-| **Push Notifications** | ✅ | | |
-| **Background Modes** → tick **Remote notifications** | ✅ | | |
-| **Keychain Sharing** | để tuần 3–4 (auth) | để tuần 3–4 | |
+Chọn target → tab **Signing & Capabilities** → **+ Capability**.
 
-- [ ] Với App Groups: ở target thứ 2 và 3, **tick vào group đã tạo**, đừng tạo group mới. Nếu tên group hiện màu đỏ, bấm nút refresh nhỏ cạnh đó.
-- [ ] Framework **PhotographShared không cần** capability nào.
+| Capability | Photograph | PhotographWidget |
+|---|:-:|:-:|
+| **App Groups** → **+** → `group.com.tencau.photograph` | ✅ | ✅ (tick group đã tạo, đừng tạo mới) |
+| **Keychain Sharing** → **+** → `com.tencau.photograph.shared` | ✅ | ✅ (cùng tên group) |
 
-### C6. Thêm Firebase SDK (chỉ cho app target)
+- [ ] Nếu tên group hiện màu đỏ, bấm nút refresh nhỏ cạnh đó.
+- [ ] ⚠️ **Nếu Xcode báo "Personal development teams … do not support the App Groups capability"** (hoặc Keychain Sharing): dừng lại, chụp màn hình gửi tớ. Tớ tin là cả hai đều có với Personal Team, nhưng đây chính là điều spike cần xác nhận, và tớ có phương án dự phòng.
 
-- [ ] **File → Add Package Dependencies…** → dán `https://github.com/firebase/firebase-ios-sdk` → Dependency Rule: **Up to Next Major Version** → Add Package.
-- [ ] Ở màn chọn product: chỉ tick **FirebaseMessaging**, target **Photograph**. Không thêm Firebase vào widget hay NSE — NSE sẽ tự tải ảnh bằng `URLSession`, giữ extension nhẹ để không vượt giới hạn bộ nhớ.
+### B5. Thêm Firebase SDK
 
-### C7. Kiểm tra build
+- [ ] **File → Add Package Dependencies…** → dán `https://github.com/firebase/firebase-ios-sdk` → **Up to Next Major Version** → Add Package.
+- [ ] Ở màn chọn product:
+  - **FirebaseAuth** → target **Photograph**
+  - **FirebaseFirestore** → target **Photograph**
+- [ ] Sau đó thêm FirebaseAuth cho widget: target **PhotographWidget** → General → Frameworks and Libraries → **+** → **FirebaseAuth**.
+  - Widget chỉ dùng Auth để lấy token, rồi gọi Firestore qua REST. **Không** thêm FirebaseFirestore vào widget (quá nặng so với giới hạn bộ nhớ widget).
 
-- [ ] Cắm iPhone B → chọn scheme **Photograph** + thiết bị → **Run** (⌘R). Lần đầu iPhone sẽ hỏi tin cậy nhà phát triển: *Cài đặt → Cài đặt chung → Quản lý VPN & Thiết bị* → tin cậy.
-- [ ] Ra màn hình chính → nhấn giữ → **+** → tìm "Photograph" → thêm widget mẫu của Xcode. Thấy widget hiện là đạt.
-- [ ] Lặp lại với iPhone A.
+### B6. Kiểm tra build trên cả 2 máy
+
+- [ ] Cắm iPhone B → chọn scheme **Photograph** + thiết bị → **Run** (⌘R).
+- [ ] Lần đầu iPhone báo "Untrusted Developer": *Cài đặt → Cài đặt chung → Quản lý VPN & Thiết bị* → chọn Apple ID của cậu → **Tin cậy**. Rồi Run lại.
+- [ ] Ra màn hình chính → nhấn giữ → **+** → tìm "Photograph" → thêm widget mẫu. Thấy widget hiện là đạt.
+- [ ] Lặp lại với iPhone A (máy người ấy cũng cài bằng Apple ID của cậu được, chỉ cần cắm vào Mac của cậu).
 
 ---
 
-## D. Firebase Console
+## C. Firebase Console (gói Spark, không cần thẻ)
 
-- [ ] console.firebase.google.com → **Add project** → tên `photograph` (tắt Google Analytics cho gọn).
-- [ ] **Nâng lên gói Blaze** (Cloud Functions bắt buộc). Vào *Usage and billing → Details & settings → Budget alert* đặt ngưỡng nhỏ, ví dụ 5 USD, để yên tâm. Với 2 người dùng, chi phí thực tế gần như 0.
+- [ ] console.firebase.google.com → **Add project** → tên `photograph` → tắt Google Analytics. Giữ nguyên gói **Spark**, **không** nâng lên Blaze.
 - [ ] **Add app → iOS**:
-  - Apple bundle ID: `com.tencau.photograph` (bundle của **app**, không phải widget/NSE)
-  - Tải `GoogleService-Info.plist` → kéo vào Xcode, thả vào nhóm `Photograph`, **chỉ tick target Photograph**.
-  - Các bước "Add Firebase SDK" và "Add initialization code" → bỏ qua (Next), phần code mình làm ở bước 2.
+  - Apple bundle ID: `com.tencau.photograph` (bundle của **app**)
+  - Tải `GoogleService-Info.plist` → kéo vào Xcode, thả vào nhóm `Photograph`, tick **cả 2 target Photograph và PhotographWidget** (widget cần nó để khởi tạo FirebaseAuth).
+  - Các bước "Add Firebase SDK" và "Add initialization code" → bỏ qua (Next), code làm ở bước 2.
   - ⚠️ File này đã nằm trong `.gitignore`. Trước mỗi lần commit, chạy `git status` và xác nhận nó **không** xuất hiện.
-- [ ] **Project settings (⚙️) → Cloud Messaging → Apple app configuration → APNs Authentication Key → Upload**: chọn file `.p8`, điền Key ID và Team ID ở phần B.
-- [ ] **Build → Storage → Get started** → chọn region gần VN (ví dụ `asia-southeast1`) → start in **production mode** (rules mình viết sau).
-- [ ] **Build → Firestore Database → Create database** → cùng region → **production mode**.
-- [ ] Service account cho script gửi push thử (bước 3): **Project settings → Service accounts → Generate new private key** → lưu file JSON **ngoài repo**, ví dụ `~/.secrets/photograph-sa.json`.
+- [ ] **Build → Authentication → Get started → Sign-in method → Anonymous → Enable → Save**.
+- [ ] **Build → Firestore Database → Create database** → region `asia-southeast1` (Singapore) → **Start in production mode**. Rules thật tớ viết ở bước 2.
+- [ ] **Không** bật Storage, **không** tạo Cloud Functions — cả hai đều đòi Blaze.
 
 ---
 
-## E. Liên kết repo với Firebase
+## D. Liên kết repo với Firebase
 
 Trong thư mục repo:
 
@@ -138,25 +129,24 @@ Trong thư mục repo:
 firebase use --add        # chọn project photograph, alias: default
 ```
 
-Chưa cần `firebase init` — ở bước 2 tớ sẽ đưa sẵn `firebase.json` và thư mục `functions/`.
+Chưa cần `firebase init` — ở bước 2 tớ sẽ đưa sẵn `firebase.json` và `firestore.rules`.
 
 ---
 
 ## Xong bước 1 khi
 
-- [ ] Project build được và chạy trên **cả 2 iPhone**, mỗi máy thêm được widget mẫu.
-- [ ] 3 target (app, widget, NSE) cùng dùng App Group `group.com.tencau.photograph`.
-- [ ] Firebase đã có APNs key, Storage, Firestore, gói Blaze.
-- [ ] Có file service account JSON nằm ngoài repo.
-- [ ] `git status` không thấy `GoogleService-Info.plist`, `.p8` hay file JSON service account.
+- [ ] Project build và chạy trên **cả 2 iPhone**, mỗi máy thêm được widget mẫu.
+- [ ] App Groups + Keychain Sharing bật được cho cả app và widget, không lỗi signing.
+- [ ] Firebase có Anonymous Auth và Firestore, vẫn ở gói Spark.
+- [ ] `git status` không thấy `GoogleService-Info.plist`.
 
-Khi xong, commit project Xcode rỗng này rồi báo tớ **Bundle ID thật** và **App Group thật** để tớ điền vào code ở bước 2.
+Khi xong, commit project Xcode rỗng này rồi báo tớ **Bundle ID**, **App Group** và **Keychain group** thật để tớ điền vào code ở bước 2.
 
 ---
 
-## Những điều cần biết trước bước 2 (ảnh hưởng thiết kế)
+## Những điều cần biết trước bước 2
 
-1. **NSE chỉ chạy với push hiển thị** (có `alert`) và `mutable-content: 1`. Silent push (`content-available`) **không** kích hoạt NSE, và bị iOS bóp mạnh khi app đã tắt hoặc Low Power Mode. Vì vậy mỗi khoảnh khắc mới sẽ đi kèm một thông báo thấy được ("Mèo vừa gửi một khoảnh khắc") — cũng khớp với thiết kế ở Prompt 6.
-2. **Nếu người nhận tắt thông báo của app, NSE không chạy → widget không tự đổi.** Fallback theo §8 spec: app tải khoảnh khắc mới nhất mỗi lần được mở và reload widget.
-3. **NSE có ~30 giây và giới hạn bộ nhớ rất thấp (~24MB).** Tớ sẽ resize bằng ImageIO (`CGImageSourceCreateThumbnailAtIndex`) để không bao giờ giải mã ảnh gốc vào RAM.
-4. **Ngân sách reload widget:** `reloadAllTimelines()` gọi từ extension có thể bị iOS giới hạn khi gọi quá nhiều trong ngày. Với nhịp gửi của 2 người thì ổn, nhưng spike sẽ đo thực tế — đây chính là rủi ro "Cao" ở §8.
+1. **Widget không được "đánh thức" từ xa.** iOS tự quyết khi nào widget làm mới (thường vài chục lần/ngày, thưa hơn khi Low Power Mode hoặc khi ít nhìn màn hình chính). Tớ sẽ xin làm mới mỗi ~15 phút, iOS có thể giãn ra. Spike sẽ ghi log mỗi lần widget làm mới để mình có số liệu thật.
+2. **Mở app = cập nhật ngay.** Khi app ở foreground, nó nghe Firestore trực tiếp và reload widget; lần reload này không tính vào ngân sách của iOS.
+3. **Ảnh resize ở máy gửi** (~600px, JPEG ~60KB) rồi lưu thẳng trong Firestore, vì gói miễn phí không có Storage. Widget không bao giờ giải mã ảnh lớn.
+4. **Lịch cài lại 7 ngày:** chọn một ngày cố định trong tuần (ví dụ tối Chủ nhật) để cắm cả 2 máy vào Mac và bấm Run.
